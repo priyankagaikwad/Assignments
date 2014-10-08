@@ -17,6 +17,8 @@
 
 @implementation MasterViewController
 
+NSMutableArray *appNamesArray, *imageView, *rightsArray, *linkArray, *priceArray, *artistArray, *categoryArray, *releaseDateArray;
+
 - (void)awakeFromNib
 {
     [super awakeFromNib];
@@ -26,10 +28,58 @@
 {
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
-    self.navigationItem.leftBarButtonItem = self.editButtonItem;
-
-    UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(insertNewObject:)];
-    self.navigationItem.rightBarButtonItem = addButton;
+    appNamesArray = [[NSMutableArray alloc] init];
+    imageView = [[NSMutableArray alloc] init];
+    rightsArray = [[NSMutableArray alloc] init];
+    priceArray = [[NSMutableArray alloc] init];
+    artistArray = [[NSMutableArray alloc] init];
+    releaseDateArray = [[NSMutableArray alloc] init];
+    linkArray = [[NSMutableArray alloc] init];
+    categoryArray = [[NSMutableArray alloc] init];
+    
+    NSData *allData = [[NSData alloc]initWithContentsOfURL:[NSURL URLWithString:@"https://itunes.apple.com/us/rss/newfreeapplications/limit=2/json"]];
+    NSError *error;
+    NSDictionary *allDataInDictionary = [NSJSONSerialization JSONObjectWithData:allData options:kNilOptions error:&error];
+    if (error) {
+        NSLog(@"Error %@ ",[error localizedDescription]);
+    }
+    else
+    {
+        NSDictionary *feedDictionary = allDataInDictionary[@"feed"];
+        NSArray *entry = feedDictionary[@"entry"];
+        NSDictionary *nameDictionary, *rightsDictionary, *priceDictionary, *artistDictionary, *releaseDateDictionary, *linkDictionary, *categoryDictionary, *subDictionary;
+        for (NSDictionary *try in entry)
+        {
+            NSArray *image = try[@"im:image"];
+            NSDictionary *imageLogoDictionary = [image objectAtIndex:0];
+            [imageView insertObject:imageLogoDictionary[@"label"] atIndex:[imageView count]];
+            
+            nameDictionary = try[@"im:name"];
+            [appNamesArray insertObject:nameDictionary[@"label"] atIndex:[appNamesArray count]];
+            
+            artistDictionary = try[@"im:artist"];
+            [artistArray insertObject:artistDictionary[@"label"] atIndex:[artistArray count]];
+            
+            priceDictionary = try[@"im:price"];
+            subDictionary = priceDictionary[@"attributes"];
+            [priceArray insertObject:[NSString stringWithFormat:@"%@%@",subDictionary[@"amount"], subDictionary[@"currency"]] atIndex:[priceArray count]];
+            
+            releaseDateDictionary = try[@"im:releaseDate"];
+            subDictionary = releaseDateDictionary[@"attributes"];
+            [releaseDateArray insertObject:subDictionary[@"label"] atIndex:[releaseDateArray count]];
+            
+            linkDictionary = try[@"link"];
+            subDictionary = linkDictionary[@"attributes"];
+            [linkArray insertObject:subDictionary[@"href"] atIndex:[linkArray count]];
+            
+            categoryDictionary = try[@"category"];
+            subDictionary = categoryDictionary[@"attributes"];
+            [categoryArray insertObject:subDictionary[@"label"] atIndex:[categoryArray count]];
+            
+            rightsDictionary = try[@"rights"];
+            [rightsArray insertObject:rightsDictionary[@"label"] atIndex:[rightsArray count]];
+        }
+    }
 }
 
 - (void)didReceiveMemoryWarning
@@ -57,56 +107,31 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return _objects.count;
+    return [appNamesArray count];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
+    cell.imageView.image = [UIImage imageWithData:[ NSData dataWithContentsOfURL:[ NSURL URLWithString:[imageView objectAtIndex:indexPath.row]]]];
+    cell.textLabel.text = [appNamesArray objectAtIndex:indexPath.row];
 
-    NSDate *object = _objects[indexPath.row];
-    cell.textLabel.text = [object description];
     return cell;
 }
-
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
-}
-
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
-        [_objects removeObjectAtIndex:indexPath.row];
-        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    } else if (editingStyle == UITableViewCellEditingStyleInsert) {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view.
-    }
-}
-
-/*
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath
-{
-}
-*/
-
-/*
-// Override to support conditional rearranging of the table view.
-- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    // Return NO if you do not want the item to be re-orderable.
-    return YES;
-}
-*/
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
     if ([[segue identifier] isEqualToString:@"showDetail"]) {
         NSIndexPath *indexPath = [self.tableView indexPathForSelectedRow];
-        NSDate *object = _objects[indexPath.row];
-        [[segue destinationViewController] setDetailItem:object];
+        DetailViewController * detailViewController = segue.destinationViewController;
+        detailViewController.appLogoImageFromURL = [UIImage imageWithData:[ NSData dataWithContentsOfURL:[ NSURL URLWithString:[imageView objectAtIndex:indexPath.row]]]];
+        detailViewController.appNameString = [appNamesArray objectAtIndex:indexPath.row];
+        detailViewController.artistString = [artistArray objectAtIndex:indexPath.row];
+        detailViewController.priceString = [priceArray objectAtIndex:indexPath.row];
+        detailViewController.releaseDateString = [releaseDateArray objectAtIndex:indexPath.row];
+        detailViewController.linkString = [linkArray objectAtIndex:indexPath.row];
+        detailViewController.categoryString = [categoryArray objectAtIndex:indexPath.row];
+        detailViewController.rightString = [rightsArray objectAtIndex:indexPath.row];
     }
 }
 

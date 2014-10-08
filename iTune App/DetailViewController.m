@@ -31,15 +31,21 @@
     // Update the user interface for the detail item.
 
     if (self.detailItem) {
-        self.detailDescriptionLabel.text = [self.detailItem description];
+      //  self.appDescriptionLabel.text = [self.detailItem description];
     }
 }
 
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-	// Do any additional setup after loading the view, typically from a nib.
-    [self configureView];
+    _appLogoImage.image = _appLogoImageFromURL;
+    _appNameLabel.text = _appNameString ;
+    _artistLabel.text = _artistString;
+    _priceLabel.text = _priceString;
+    _releaseDateLabel.text = _releaseDateString;
+    _categoryLabel.text = _categoryString;
+    _rightsLabel.text = _rightString;
+    
 }
 
 - (void)didReceiveMemoryWarning
@@ -48,4 +54,7 @@
     // Dispose of any resources that can be recreated.
 }
 
+- (IBAction)OpenLink:(id)sender {
+        [[UIApplication sharedApplication] openURL:[NSURL URLWithString:_linkString]];
+}
 @end
