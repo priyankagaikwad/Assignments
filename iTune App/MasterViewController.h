@@ -11,4 +11,6 @@
 @interface MasterViewController : UITableViewController <UITableViewDataSource,UITableViewDelegate>
 @property (strong, nonatomic) IBOutlet UITableView *tableView;
 
+-(void) fetchiTuneDataInArrayFromJson:(NSData *) allData;
+
 @end
