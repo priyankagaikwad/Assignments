@@ -7,10 +7,9 @@
 //
 
 #import "MasterViewController.h"
-
+#import "AppDelegate.h"
 #import "DetailViewController.h"
-
-
+#import "Reachability.h"
 
 @interface MasterViewController () {
     NSMutableArray *_objects;
@@ -20,8 +19,11 @@
 
 @implementation MasterViewController
 
-NSMutableArray *appNamesArray, *imageView, *rightsArray, *linkArray, *priceArray, *artistArray, *categoryArray, *releaseDateArray;
-
+NSMutableArray *appNames, *imageURLs, *rights, *links, *prices, *artists, *categories, *releaseDates, *downloadImages,*directoryContents;
+AppDelegate *appDelegate;
+NSData *offlineImageData;
+NSArray *filePaths;
+NSInteger indexCountForImages = 0;
 - (void)awakeFromNib
 {
     [super awakeFromNib];
@@ -30,20 +32,34 @@ NSMutableArray *appNamesArray, *imageView, *rightsArray, *linkArray, *priceArray
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-	// Do any additional setup after loading the view, typically from a nib.
-    appNamesArray = [[NSMutableArray alloc] init];
-    imageView = [[NSMutableArray alloc] init];
-    rightsArray = [[NSMutableArray alloc] init];
-    priceArray = [[NSMutableArray alloc] init];
-    artistArray = [[NSMutableArray alloc] init];
-    releaseDateArray = [[NSMutableArray alloc] init];
-    linkArray = [[NSMutableArray alloc] init];
-    categoryArray = [[NSMutableArray alloc] init];
+    appDelegate = [[UIApplication sharedApplication] delegate];
+	
+    appNames          = [[NSMutableArray alloc] init];
+    imageURLs         = [[NSMutableArray alloc] init];
+    rights            = [[NSMutableArray alloc] init];
+    prices            = [[NSMutableArray alloc] init];
+    artists           = [[NSMutableArray alloc] init];
+    releaseDates      = [[NSMutableArray alloc] init];
+    links             = [[NSMutableArray alloc] init];
+    categories        = [[NSMutableArray alloc] init];
+    downloadImages    = [[NSMutableArray alloc] init];
+    directoryContents = [[NSMutableArray alloc] init];
+    //Activity indicator
+    [self.tableView addSubview:_activity];
+    [self.tableView bringSubviewToFront:_activity];
+    _activity.center = self.tableView.center;
+    [_activity startAnimating];
     
-    NSData *allData = [[NSData alloc]initWithContentsOfURL:[NSURL URLWithString:@"https://itunes.apple.com/us/rss/newfreeapplications/limit=2/json"]];
-        
-             [self fetchiTuneDataInArrayFromJson:allData];
-    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSURL *url = [NSURL URLWithString:@"https://itunes.apple.com/us/rss/newfreeapplications/limit=2/json"];
+        NSURLResponse *response;
+        NSURLRequest *urlRequest = [[NSURLRequest alloc] initWithURL:url];
+        NSData *iTuneData = [NSURLConnection sendSynchronousRequest:urlRequest returningResponse:&response error:nil];
+        [self fetchiTuneDataInArrayFromJson:iTuneData];
+        dispatch_async(dispatch_get_main_queue(),^{
+            [self.tableView reloadData];
+        });
+    });
 }
 
 -(void) fetchiTuneDataInArrayFromJson:(NSData *) allData
@@ -53,69 +69,86 @@ NSMutableArray *appNamesArray, *imageView, *rightsArray, *linkArray, *priceArray
     NSArray *pathForDirectory = NSSearchPathForDirectoriesInDomains(NSDocumentationDirectory, NSUserDomainMask, YES);
     NSString *pathString = [pathForDirectory objectAtIndex:0];
     NSString *filePath =[pathString stringByAppendingFormat:@"iTuneData.json"];
-    if (allData != NULL)
-    {
+    if (appDelegate.hasInternet)  {
         allDataInDictionary = [NSJSONSerialization JSONObjectWithData:allData options:kNilOptions error:nil];
         feedDictionary = allDataInDictionary[@"feed"];
-    }else
-    {
+    }
+    else {
         feedDictionary = [NSMutableDictionary dictionaryWithContentsOfFile:filePath];
-        if (feedDictionary == NULL) {
-            UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"No Internet Connection" message:@"Please check your internet connection" delegate:nil cancelButtonTitle:@"Cancel" otherButtonTitles:nil, nil];
-            [alert show];
-            return;
-        }
     }
     [feedDictionary writeToFile:filePath atomically:YES];
     NSArray *entry = feedDictionary[@"entry"];
     NSDictionary *nameDictionary, *rightsDictionary, *priceDictionary, *artistDictionary, *releaseDateDictionary, *linkDictionary, *categoryDictionary, *subDictionary;
     for (NSDictionary *try in entry)
     {
-        NSArray *image = try[@"im:image"];
-        NSDictionary *imageLogoDictionary = [image objectAtIndex:0];
-        [imageView insertObject:imageLogoDictionary[@"label"] atIndex:[imageView count]];
-        
         nameDictionary = try[@"im:name"];
-        [appNamesArray insertObject:nameDictionary[@"label"] atIndex:[appNamesArray count]];
+        [appNames insertObject:nameDictionary[@"label"] atIndex:[appNames count]];
+        
+        NSArray *images = try[@"im:image"];
+        NSDictionary *imageLogoDictionary = [images objectAtIndex:0];
+        [imageURLs insertObject:imageLogoDictionary[@"label"] atIndex:[imageURLs count]];
+        NSURL *imageUrl = [NSURL URLWithString:imageLogoDictionary[@"label"]];
+        //Download image for offline mode
+        [self downloadImage:nameDictionary[@"label"]:imageUrl];
         
         artistDictionary = try[@"im:artist"];
-        [artistArray insertObject:artistDictionary[@"label"] atIndex:[artistArray count]];
+        [artists insertObject:artistDictionary[@"label"] atIndex:[artists count]];
         
         priceDictionary = try[@"im:price"];
         subDictionary = priceDictionary[@"attributes"];
-        [priceArray insertObject:[NSString stringWithFormat:@"%@%@",subDictionary[@"amount"], subDictionary[@"currency"]] atIndex:[priceArray count]];
+        [prices insertObject:[NSString stringWithFormat:@"%@%@",subDictionary[@"amount"], subDictionary[@"currency"]] atIndex:[prices count]];
         
         releaseDateDictionary = try[@"im:releaseDate"];
         subDictionary = releaseDateDictionary[@"attributes"];
-        [releaseDateArray insertObject:subDictionary[@"label"] atIndex:[releaseDateArray count]];
+        [releaseDates insertObject:subDictionary[@"label"] atIndex:[releaseDates count]];
         
         linkDictionary = try[@"link"];
         subDictionary = linkDictionary[@"attributes"];
-        [linkArray insertObject:subDictionary[@"href"] atIndex:[linkArray count]];
+        [links insertObject:subDictionary[@"href"] atIndex:[links count]];
         
         categoryDictionary = try[@"category"];
         subDictionary = categoryDictionary[@"attributes"];
-        [categoryArray insertObject:subDictionary[@"label"] atIndex:[categoryArray count]];
+        [categories insertObject:subDictionary[@"label"] atIndex:[categories count]];
         
         rightsDictionary = try[@"rights"];
-        [rightsArray insertObject:rightsDictionary[@"label"] atIndex:[rightsArray count]];
+        [rights insertObject:rightsDictionary[@"label"] atIndex:[rights count]];
+    }
+    
+    //offline image
+    
+    NSString *stringPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)objectAtIndex:0];
+    filePaths = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)lastObject] error:nil];
+    
+    for(int i=0;i<[filePaths count];i++)
+    {
+        NSString *filePath = [filePaths objectAtIndex:i];
+        if ([[filePath pathExtension] isEqualToString:@"jpg"] || [[filePath pathExtension] isEqualToString:@"png"] || [[filePath pathExtension] isEqualToString:@"PNG"]) {
+            NSString *imagePath = [[stringPath stringByAppendingFormat:@"/"] stringByAppendingFormat:@"%@",filePath];
+            NSData *data = [NSData dataWithContentsOfFile:imagePath];
+            if(data) {
+                UIImage *image = [UIImage imageWithData:data];
+                [directoryContents addObject:image];
+            }
+        }
+        else {
+            [directoryContents addObject:[directoryContents objectAtIndex:0]];
+        }
     }
 }
 
-- (void)didReceiveMemoryWarning
+-(void) downloadImage:(NSString *)labelAsImageName:(NSURL *) imageUrl
 {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
-}
-
-- (void)insertNewObject:(id)sender
-{
-    if (!_objects) {
-        _objects = [[NSMutableArray alloc] init];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *docPath = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
+    NSString *imageName = [NSString stringWithFormat:@"%@%@",labelAsImageName,@".png"];
+    NSString *pathTosaveImage = [docPath stringByAppendingPathComponent:imageName];
+    if (![fileManager fileExistsAtPath:pathTosaveImage]) {
+        NSString *pathTosaveImage = [docPath stringByAppendingPathComponent:imageName];
+        offlineImageData = [NSData dataWithContentsOfURL:imageUrl];
+        if (offlineImageData) {
+            [offlineImageData writeToFile:pathTosaveImage atomically:YES];
+        }
     }
-    [_objects insertObject:[NSDate date] atIndex:0];
-    NSIndexPath *indexPath = [NSIndexPath indexPathForRow:0 inSection:0];
-    [self.tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
 #pragma mark - Table View
@@ -127,31 +160,64 @@ NSMutableArray *appNamesArray, *imageView, *rightsArray, *linkArray, *priceArray
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return [appNamesArray count];
+    return [appNames count];
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
+    
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
-    cell.imageView.image = [UIImage imageWithData:[ NSData dataWithContentsOfURL:[ NSURL URLWithString:[imageView objectAtIndex:indexPath.row]]]];
-    cell.textLabel.text = [appNamesArray objectAtIndex:indexPath.row];
-
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        UIImage *logo ;
+        if (appDelegate.hasInternet) {
+            logo = [UIImage imageWithData:[ NSData dataWithContentsOfURL:[ NSURL URLWithString:[imageURLs objectAtIndex:indexPath.row]]]];
+        }
+        else {
+            indexCountForImages = [self indexCountOfArrayOfImage:[appNames objectAtIndex:indexPath.row]];
+            logo = [directoryContents objectAtIndex:indexCountForImages];
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            cell.imageView.image = logo;
+        });
+    });
+    cell.textLabel.text = [appNames objectAtIndex:indexPath.row];
+    [_activity stopAnimating];
+    _activity.hidden = YES;
     return cell;
 }
 
+- (NSInteger ) indexCountOfArrayOfImage : (NSString *) labelName
+{
+    NSInteger count = 0;
+    for (NSString * imageName in filePaths)
+    {
+        NSString* imageNames = [[imageName lastPathComponent] stringByDeletingPathExtension];
+        if([labelName isEqualToString:imageNames]){
+            return count;
+        }
+        count++;
+    }
+    return 0;
+}
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
     if ([[segue identifier] isEqualToString:@"showDetail"]) {
         NSIndexPath *indexPath = [self.tableView indexPathForSelectedRow];
         DetailViewController * detailViewController = segue.destinationViewController;
-        detailViewController.appLogoImageFromURL = [UIImage imageWithData:[ NSData dataWithContentsOfURL:[ NSURL URLWithString:[imageView objectAtIndex:indexPath.row]]]];
-        detailViewController.appNameString = [appNamesArray objectAtIndex:indexPath.row];
-        detailViewController.artistString = [artistArray objectAtIndex:indexPath.row];
-        detailViewController.priceString = [priceArray objectAtIndex:indexPath.row];
-        detailViewController.releaseDateString = [releaseDateArray objectAtIndex:indexPath.row];
-        detailViewController.linkString = [linkArray objectAtIndex:indexPath.row];
-        detailViewController.categoryString = [categoryArray objectAtIndex:indexPath.row];
-        detailViewController.rightString = [rightsArray objectAtIndex:indexPath.row];
+        if(appDelegate.hasInternet) {
+           detailViewController.appLogoImageFromURL = [UIImage imageWithData:[ NSData dataWithContentsOfURL:[ NSURL URLWithString:[imageURLs objectAtIndex:indexPath.row]]]];
+        }
+        else {
+            indexCountForImages = [self indexCountOfArrayOfImage:[appNames objectAtIndex:indexPath.row]];
+            detailViewController.appLogoImageFromURL = [directoryContents objectAtIndex:indexCountForImages];
+        }
+        detailViewController.appNameString = [appNames objectAtIndex:indexPath.row];
+        detailViewController.artistString = [artists objectAtIndex:indexPath.row];
+        detailViewController.priceString = [prices objectAtIndex:indexPath.row];
+        detailViewController.releaseDateString = [releaseDates objectAtIndex:indexPath.row];
+        detailViewController.linkString = [links objectAtIndex:indexPath.row];
+        detailViewController.categoryString = [categories objectAtIndex:indexPath.row];
+        detailViewController.rightString = [rights objectAtIndex:indexPath.row];
     }
 }
 

@@ -7,10 +7,14 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "Reachability.h"
 
 @interface MasterViewController : UITableViewController <UITableViewDataSource,UITableViewDelegate>
 @property (strong, nonatomic) IBOutlet UITableView *tableView;
 
--(void) fetchiTuneDataInArrayFromJson:(NSData *) allData;
+@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *activity;
 
+- (void) fetchiTuneDataInArrayFromJson:(NSData *) allData;
+- (NSInteger) indexCountOfArrayOfImage: (NSString *) labelName;
+- (void) downloadImage:(NSString *)labelAsImageName:(NSURL *) url;
 @end

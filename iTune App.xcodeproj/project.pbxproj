@@ -22,6 +22,8 @@
 		7E2EDFB219D563DD00E6646B /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7E2EDF9119D563DD00E6646B /* UIKit.framework */; };
 		7E2EDFBA19D563DD00E6646B /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7E2EDFB819D563DD00E6646B /* InfoPlist.strings */; };
 		7E2EDFBC19D563DD00E6646B /* iTune_AppTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 7E2EDFBB19D563DD00E6646B /* iTune_AppTests.m */; };
+		7EAC53B819E7E8E300C2D91E /* Reachability.m in Sources */ = {isa = PBXBuildFile; fileRef = 7EAC53B719E7E8E300C2D91E /* Reachability.m */; };
+		7EAC53BA19E80C2500C2D91E /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7EAC53B919E80C2500C2D91E /* SystemConfiguration.framework */; settings = {ATTRIBUTES = (Required, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +58,9 @@
 		7E2EDFB719D563DD00E6646B /* iTune AppTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "iTune AppTests-Info.plist"; sourceTree = "<group>"; };
 		7E2EDFB919D563DD00E6646B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		7E2EDFBB19D563DD00E6646B /* iTune_AppTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iTune_AppTests.m; sourceTree = "<group>"; };
+		7EAC53B619E7E8E300C2D91E /* Reachability.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Reachability.h; sourceTree = "<group>"; };
+		7EAC53B719E7E8E300C2D91E /* Reachability.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Reachability.m; sourceTree = "<group>"; };
+		7EAC53B919E80C2500C2D91E /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +78,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7EAC53BA19E80C2500C2D91E /* SystemConfiguration.framework in Frameworks */,
 				7E2EDFB019D563DD00E6646B /* XCTest.framework in Frameworks */,
 				7E2EDFB219D563DD00E6646B /* UIKit.framework in Frameworks */,
 				7E2EDFB119D563DD00E6646B /* Foundation.framework in Frameworks */,
@@ -104,6 +110,7 @@
 		7E2EDF8C19D563DD00E6646B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				7EAC53B919E80C2500C2D91E /* SystemConfiguration.framework */,
 				7E2EDF8D19D563DD00E6646B /* Foundation.framework */,
 				7E2EDF8F19D563DD00E6646B /* CoreGraphics.framework */,
 				7E2EDF9119D563DD00E6646B /* UIKit.framework */,
@@ -124,6 +131,8 @@
 				7E2EDFA619D563DD00E6646B /* DetailViewController.m */,
 				7E2EDFA819D563DD00E6646B /* Images.xcassets */,
 				7E2EDF9419D563DD00E6646B /* Supporting Files */,
+				7EAC53B619E7E8E300C2D91E /* Reachability.h */,
+				7EAC53B719E7E8E300C2D91E /* Reachability.m */,
 			);
 			path = "iTune App";
 			sourceTree = "<group>";
@@ -258,6 +267,7 @@
 				7E2EDFA419D563DD00E6646B /* MasterViewController.m in Sources */,
 				7E2EDF9A19D563DD00E6646B /* main.m in Sources */,
 				7E2EDFA719D563DD00E6646B /* DetailViewController.m in Sources */,
+				7EAC53B819E7E8E300C2D91E /* Reachability.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -462,6 +472,7 @@
 				7E2EDFC119D563DD00E6646B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		7E2EDFC219D563DD00E6646B /* Build configuration list for PBXNativeTarget "iTune AppTests" */ = {
 			isa = XCConfigurationList;
@@ -470,6 +481,7 @@
 				7E2EDFC419D563DD00E6646B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
